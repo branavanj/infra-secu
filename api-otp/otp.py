@@ -9,13 +9,13 @@ from dotenv import load_dotenv
 from datetime import datetime
 import os
 
-# Load environment variables
+
 load_dotenv()
 
-# Initialize Flask app
+
 app = Flask(__name__)
 
-# Setup database connection
+
 def get_db_connection():
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
@@ -25,7 +25,7 @@ def get_db_connection():
     )
     return conn
 
-# Setup Redis connection
+
 def get_redis_connection():
     r = redis.Redis(
         host=os.getenv("REDIS_HOST"),
@@ -35,7 +35,7 @@ def get_redis_connection():
     )
     return r
 
-# Helper function to send email
+
 def send_email(otp, recipient):
     msg = EmailMessage()
     msg.set_content(f"Your OTP is: {otp}")
@@ -47,11 +47,11 @@ def send_email(otp, recipient):
         smtp.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASSWORD"))
         smtp.send_message(msg)
 
-# Helper function to hash OTP
+
 def hash_otp(otp):
     return hashlib.sha256(otp.encode()).hexdigest()
 
-# Route to request OTP
+
 @app.route('/request_otp', methods=['POST'])
 def request_otp():
     username = request.json['username']
@@ -63,13 +63,13 @@ def request_otp():
         cur.close()
         conn.close()
 
-        if user_data and user_data[1]:  # Checking if email_verified is True
+        if user_data and user_data[1]: 
             email = user_data[0]
-            otp = f"{random.randint(100000, 999999)}"  # Generate a 6-digit OTP
+            otp = f"{random.randint(100000, 999999)}"  
             send_email(otp, email)
             otp_hash = hash_otp(otp)
             
-            # Store OTP hash in Redis with additional data
+            
             redis_conn = get_redis_connection()
             redis_conn.set(email, otp_hash)
             redis_conn.set(f"{email}_created", str(datetime.now()))
@@ -81,7 +81,7 @@ def request_otp():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Route to verify OTP
+
 @app.route('/verify_otp', methods=['POST'])
 def verify_otp():
     username = request.json['username']
@@ -94,19 +94,19 @@ def verify_otp():
         cur.close()
         conn.close()
 
-        # Retrieve the hashed OTP from Redis
+        
         redis_conn = get_redis_connection()
         otp_hash_stored = redis_conn.get(email)
 
-        # Check if the provided OTP hash matches the stored hash
+
         if otp_hash_stored == otp_hash_provided:
-            # Optionally, you could increase attempts or check for expiration here
+        
             return jsonify({'message': 'OTP verification successful'}), 200
         else:
             return jsonify({'error': 'Invalid OTP'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Running the Flask application
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80, debug=True)

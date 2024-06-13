@@ -1,0 +1,19 @@
+<!-- otp-form.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter OTP</title>
+</head>
+<body>
+    <h1>Enter OTP</h1>
+    <form action="/verify-otp" method="post">
+        <input type="hidden" name="username" value="<%= username %>">
+        <label for="otp">OTP:</label>
+        <input type="text" id="otp" name="otpCode" required>
+        <input type="hidden" name="hashedOTP" value="<%= hashedOTP %>">
+        <button type="submit">Verify OTP</button>
+    </form>
+</body>
+</html>

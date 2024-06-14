@@ -7,12 +7,13 @@ const axios = require("axios");
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const path = require('path');
+require('dotenv').config(); // Charger les variables d'environnement
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: 'yoX0wu6Vhgtm+GrObVXRBJnOX+EOvPS53iOK9foSmuE=',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { secure: false }
@@ -20,19 +21,19 @@ app.use(session({
 
 // Connexion à la base de données PostgreSQL
 const pool = new Pool({
-  user: 'postgres',
-  host: '10.15.11.100',
-  database: 'extranet',
-  password: 'branjeya!!',
-  port: 5432,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 });
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
   auth: {
-    user: 'secureverifybj@gmail.com',
-    pass: 'vqkiyoqoxjvjnlbl',
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
 
@@ -52,7 +53,7 @@ app.get('/verify-email', async (req, res) => {
   }
 
   try {
-    const decodedToken = jwt.verify(token, app.get('secret'));
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const email = decodedToken.email;
 
     // Mettre à jour le statut de l'e-mail vérifié dans la base de données
@@ -69,7 +70,7 @@ app.get('/verify-email', async (req, res) => {
 const authenticateJWT = (req, res, next) => {
   const token = req.session.token;
   if (token) {
-    jwt.verify(token, app.get('secret'), (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
         return res.redirect('/login');
       }
@@ -80,8 +81,6 @@ const authenticateJWT = (req, res, next) => {
     res.redirect('/login');
   }
 };
-
-app.set('secret', 'yoX0wu6Vhgtm+GrObVXRBJnOX+EOvPS53iOK9foSmuE=');
 
 app.get('/register', (req, res) => {
   res.render('register');
@@ -101,7 +100,7 @@ app.post('/login', async (req, res) => {
 
   try {
     // Vérification du captcha avec l'API reCAPTCHA de Google
-    const captchaVerified = await axios.post(`https://www.google.com/recaptcha/api/siteverify?secret=6LfK67opAAAAAOcxuINBmWo4StlmP6XtPJi2MkpA&response=${captchaResponse}`);
+    const captchaVerified = await axios.post(`https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET}&response=${captchaResponse}`);
 
     // Si la vérification du captcha a échoué
     if (!captchaVerified.data.success) {
@@ -115,7 +114,7 @@ app.post('/login', async (req, res) => {
       // Vérification du mot de passe si l'utilisateur existe
       if (user && bcrypt.compareSync(password, user.password)) {
         // Création du token JWT
-        const token = jwt.sign({ username: user.username }, app.get('secret'), { expiresIn: JWT_EXPIRATION_TIME });
+        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: JWT_EXPIRATION_TIME });
         req.session.token = token; // Stockage du token dans la session
         return res.redirect('/dashboard'); // Redirection vers /dashboard après l'authentification
       }
@@ -128,7 +127,6 @@ app.post('/login', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-
 
 app.post('/register', async (req, res) => {
   const { username, email, password, ip } = req.body;
@@ -148,11 +146,11 @@ app.post('/register', async (req, res) => {
     await pool.query('INSERT INTO utilisateurs (username, email, password, ip, date_creation) VALUES ($1, $2, $3, $4, $5)', [username, email, hashedPassword, ip, currentDate]);
 
     // Générer un token pour la validation de l'e-mail
-    const emailToken = jwt.sign({ email }, app.get('secret'), { expiresIn: '1d' });
+    const emailToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     // Envoyer un e-mail de validation
     const mailOptions = {
-      from: 'votre_adresse_gmail',
+      from: process.env.SMTP_USER,
       to: email,
       subject: 'Confirmation de votre adresse e-mail',
       text: `Cliquez sur le lien suivant pour confirmer votre adresse e-mail : https://extranet.infra-bj.tech/verify-email?token=${emailToken}`
@@ -173,11 +171,10 @@ app.post('/register', async (req, res) => {
   }
 });
 
-
 app.get('/dashboard', authenticateJWT, (req, res) => {
   res.render('dashboard', { username: req.user.username });
 });
 
-app.listen(80, () => {
-  console.log('Server is running on port 80');
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
 });

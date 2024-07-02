@@ -9,6 +9,14 @@ const authenticateJWT = require('../middleware/auth');
 const router = express.Router();
 const JWT_EXPIRATION_TIME = '2h';
 
+router.get('/login', (req, res) => {
+    res.render('login');
+});
+
+router.get('/register', (req, res) => {
+    res.render('register');
+});
+
 router.post('/register', async (req, res) => {
   const { username, email, password, ip } = req.body;
   const currentDate = new Date().toISOString();

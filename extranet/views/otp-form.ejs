@@ -8,7 +8,7 @@
 </head>
 <body>
     <h1>Enter OTP</h1>
-    <form action="/verify-otp" method="post">
+    <form action="/auth/verify" method="post">
         <input type="hidden" name="username" value="<%= username %>">
         <label for="otp">OTP:</label>
         <input type="text" id="otp" name="otpCode" required>

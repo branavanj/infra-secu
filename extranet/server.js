@@ -28,14 +28,6 @@ app.use('/', indexRoutes);
 app.use('/auth', authRoutes);
 app.use('/email', emailRoutes);
 
-app.get('/login', (req, res) => {
-  res.render('login');
-});
-
-app.get('/register', (req, res) => {
-  res.render('register');
-});
-
 // Start server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
